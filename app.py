@@ -82,8 +82,39 @@ def dashboard():
 @app.route('/student/dashboard')
 @login_required
 def student_dashboard():
-    registrations = Registrations.query.filter_by(student_id=current_user.id).all()
-    return render_template('student_dashboard.html', registrations=registrations)
+    if current_user.role != 'student':
+        flash('Access denied. Students only.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # get upcoming events and registrations for the student
+    events = Events.query.filter(Events.date >= datetime.now()).all()
+    my_events = [reg.event for reg in current_user.registrations]
+
+    return render_template('student_dashboard.html', events=events, my_events=my_events)
+
+@app.route('/club/dashboard')
+@login_required
+def club_dashboard():
+    if current_user.role != 'club_admin':
+        flash('Access denied. Club admins only.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # get clubs managed by the admin and their events
+    clubs = current_user.clubs
+
+    return render_template('club_dashboard.html', clubs=clubs)
+
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    if current_user.role != 'college_admin':
+        flash('Access denied. College admins only.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # get all events
+    events = Events.query.order_by(Events.created_at.desc()).all()
+
+    return render_template('admin_dashboard.html',events=events)
 
 if __name__ == '__main__':
     with app.app_context():
